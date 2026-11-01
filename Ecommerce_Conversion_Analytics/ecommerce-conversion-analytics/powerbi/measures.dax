@@ -1,0 +1,17 @@
+// After importing reports/real/sessions_clean.csv, rename the table Sessions.
+// Revenue is 0/1 purchase flag, NOT a monetary revenue field.
+
+Sessions = COUNTROWS(Sessions)
+
+Purchases = SUM(Sessions[revenue])
+
+Conversion Rate = DIVIDE([Purchases], [Sessions], 0)
+
+Non-Purchase Sessions = [Sessions] - [Purchases]
+
+Average Product Pages = AVERAGE(Sessions[productrelated])
+
+Average Exit Rate = AVERAGE(Sessions[exitrates])
+
+// Set Conversion Rate and Average Exit Rate formats to Percentage.
+// Sort month by month_order, and product_page_bucket by a numeric sort column.
