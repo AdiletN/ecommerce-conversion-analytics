@@ -1,139 +1,130 @@
-# E-commerce Conversion Analytics | SQL + Python + Statistics
+# E-commerce Conversion Analytics
 
-**End-to-end Data Analyst portfolio project** analyzing which shopping sessions end in a purchase, how conversion differs by visitor type/traffic source/engagement, and how to plan a future randomized A/B experiment.
+**A Data Analyst project with Python, SQL, and statistics**
 
-**Tools:** Python · Pandas · NumPy · SQLite (SQL) · SciPy · Matplotlib · Power BI (import instructions & DAX)
+I studied online shopping sessions to answer one question: **Which visitors buy, and where should a business look for problems?**
 
-> **Data integrity:** `Revenue` is a **Boolean purchase flag**, **not** monetary revenue. This dataset has no order values, so sales, profit, AOV and LTV **cannot** be measured. Its session-level observations are **not** an A/B experiment. All segment comparisons are observational.
+This project uses a public dataset from UCI. I cleaned the data, wrote SQL queries, compared visitor groups, and made a dashboard. I also checked one difference with a chi-square test.
 
-## Business questions
+**Tools:** Python, pandas, SQLite, SQL, SciPy, Matplotlib. I also prepared a guide and DAX measures for a future Power BI report. **The Power BI `.pbix` file is not finished yet.**
 
-1. What proportion of sessions result in a purchase?
-2. How does conversion differ between new vs returning visitors?
-3. Which traffic types drive the most sessions, and how do their conversion rates compare?
-4. How are product-page visits associated with purchase outcomes?
-5. What sample size would a properly randomized **future** A/B test need?
+## Main results
 
-## Dataset
+| Measure | Result |
+| --- | ---: |
+| Shopping sessions | **12,330** |
+| Sessions with a purchase | **1,908** |
+| Overall purchase conversion | **15.47%** |
+| New visitor conversion | **24.91%** |
+| Returning visitor conversion | **13.93%** |
 
-[Online Shoppers Purchasing Intention Dataset (UCI)](https://archive.ics.uci.edu/dataset/468/online+shoppers+purchasing+intention+dataset) by C. Sakar & Y. Kastro, 2018, [DOI 10.24432/C5F88Q](https://doi.org/10.24432/C5F88Q), **CC BY 4.0**.
+**Main finding:** New visitor sessions had a **10.98 percentage-point higher** conversion rate than returning visitor sessions. Returning visitors made up about **85.6%** of all sessions. This is a large group, so it is a good place to start more research.
 
-- **12,330 sessions**, **1,908 purchase sessions** and **10,422 non-purchase sessions** (per the official repository) — overall **15.47% purchase conversion**.
-- The dataset has 18 original attributes covering engagement, traffic, visitor type and purchase outcome.
-- No unique customer IDs, order amounts, or complete transaction dates are provided.
+The chi-square test gave **p = 3.87 × 10⁻³¹**. The result shows a strong link between visitor type and purchase conversion in this dataset. **It does not prove why people buy.** This is not an A/B test.
 
-## Quick start (Windows / macOS / Linux)
+### Dashboard (real UCI data)
+
+![Dashboard with conversion rate, visitor groups, months, product page views, and traffic types](reports/real/dashboard.png)
+
+*The dashboard is a saved result of the real dataset. Run the Python pipeline to create a new version with the latest chart design.*
+
+## Business ideas
+
+1. **Check returning visitors first.** They are the biggest group, but their conversion rate is lower. We need more data about their traffic sources and shopping steps to understand why.
+2. **Look at product navigation.** Sessions with 30+ product pages had about 23% conversion. Sessions with 1–4 pages had about 4%. This is a link, not proof that viewing more pages makes people buy.
+3. **Plan a real A/B test later.** First choose one change, such as an easier way to find products. Then test it with random groups and a clear success measure.
+
+See [Business Findings](reports/real/FINDINGS.md) for more details and limits.
+
+## Questions I studied
+
+- How many sessions end in a purchase?
+- How does conversion change by visitor type, traffic type, or month?
+- How are product page views linked to purchases?
+- Can traffic source help explain the gap between new and returning visitors?
+- How could I plan a future A/B test?
+
+## How to run the project
+
+**1. Get the code**
+
+```bash
+git clone https://github.com/AdiletN/ecommerce-conversion-analytics.git
+cd ecommerce-conversion-analytics
+```
+
+**2. Install Python packages** (Python 3.10 or newer)
 
 ```bash
 python -m venv .venv
-# Windows: .venv\Scripts\activate
-# macOS/Linux: source .venv/bin/activate
+```
+
+On Windows PowerShell:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+On macOS or Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+Then:
+
+```bash
 pip install -r requirements.txt
+```
 
-# Full REAL analysis (auto-downloads the official UCI CSV; internet required):
+**3. Run the real analysis**
+
+```bash
 python -m src.pipeline
+```
 
-# Offline demonstration only (synthetic data, clearly labelled):
+The program tries to download the [UCI dataset](https://archive.ics.uci.edu/dataset/468/online+shoppers+purchasing+intention+dataset). If the download does not work, download `online_shoppers_intention.csv` yourself and save it in the `data/` folder. Then run the command again.
+
+You can also choose a local CSV file:
+
+```bash
+python -m src.pipeline --input data/online_shoppers_intention.csv
+```
+
+**4. Run a test with fake data** (no internet needed)
+
+```bash
 python -m src.pipeline --demo
+```
 
-# Or load an already downloaded real CSV:
-python -m src.pipeline --input "data/online_shoppers_intention.csv"
+Fake data is only for checking the code. **Do not use fake results in your CV.**
 
-# Tests:
+**5. Run automated tests**
+
+```bash
 python -m pytest -q
 ```
 
-If dataset download fails, visit the UCI link above and save `online_shoppers_intention.csv` in `data/`, then rerun the command.
+## Where to find the work
 
-## Executive summary — real UCI results
+| Folder or file | What is inside |
+| --- | --- |
+| `src/` | Python cleaning, analysis, charts, and pipeline |
+| `sql/` | Six SQL queries, including CTE, JOIN, and window functions |
+| `sql/06_visitor_traffic.sql` | Extra check of visitor types by traffic type |
+| `reports/real/dashboard.png` | Dashboard made with real UCI data |
+| `reports/real/FINDINGS.md` | Business findings written for this dataset |
+| `reports/real/RUN_SUMMARY.md` | New summary made after each run (local file) |
+| `reports/demo/` | Results from fake data, clearly marked |
+| `powerbi/` | Power BI guide and DAX measures; no `.pbix` yet |
+| `tests/` | Automated Python and SQL checks |
 
-The analysis covers **12,330 shopping sessions** and **1,908 sessions with a purchase**, giving an overall **15.47% session conversion rate**.
+The script also creates a local SQLite database and CSV tables. These large temporary files are not needed in GitHub.
 
-| Segment | Sessions | Purchase conversion |
-|---|---:|---:|
-| New visitors | 1,694 | **24.91%** |
-| Returning visitors | 10,551 | **13.93%** |
-| Other | 85 | 18.82% |
+## Data and limits
 
-**Key insight:** New-visitor sessions converted **10.98 percentage points more often** than returning-visitor sessions. Returning visitors accounted for **85.6%** of sessions, making them a priority for diagnostic research—not evidence that changing visitor status would increase conversion.
+Data: [Online Shoppers Purchasing Intention Dataset, UCI](https://archive.ics.uci.edu/dataset/468/online+shoppers+purchasing+intention+dataset) (Sakar and Kastro, 2018, [DOI](https://doi.org/10.24432/C5F88Q), CC BY 4.0).
 
-Other observations:
-- Sessions with **30+ product pages viewed** converted at approximately **23%**, versus approximately **4%** for sessions with **1–4 pages**. Association does not imply causation.
-- **Traffic Type 2**, the largest of the displayed traffic sources, showed approximately **21.6%** conversion; traffic codes are anonymized rather than named marketing channels.
-- November showed the highest plotted monthly conversion (approximately **25%**), but the dataset does not include years, so this is **not** a longitudinal growth or year-over-year result.
+Each row represents a shopping session. The `Revenue` field means **purchase: yes or no**. It is **not** an amount of money. So I cannot calculate sales, profit, average order value, or customer lifetime value. The data has months but no years, so I cannot show year-to-year growth. The results show patterns, not cause and effect.
 
-**Statistical check:** The observed difference between new and returning sessions was significant in a chi-square association test (**p = 3.873 × 10⁻³¹**). The returning-minus-new difference was approximately **−10.98 percentage points** (approximate 95% CI: **[−13.142, −8.816] pp**). This is **observational, not an A/B test**, and sessions may not be independent users.
-
-**Suggested follow-up:** Investigate returning-visitor friction and traffic composition, then validate a specific product improvement with an appropriately randomized A/B test. [Read the full findings](reports/real/FINDINGS.md).
-
-## Dashboard — actual UCI results
-
-![Conversion analytics dashboard based on real UCI shopping session data](reports/real/dashboard.png)
-
-The dashboard above shows real-data results as supplied from a pipeline run. A separate, clearly labeled **synthetic demo** remains available at [`reports/demo/dashboard.png`](reports/demo/dashboard.png).
-
-## Repo structure
-
-```text
-Ecommerce_Conversion_Analytics/
-├── README.md                         Documentation, methods & limitations
-├── requirements.txt                  Python dependencies
-├── data/README.md                    Dataset citation & download instructions
-├── src/
-│   ├── data.py                       Input validation and feature engineering
-│   ├── demo.py                       Reproducible synthetic data (demo only)
-│   ├── analysis.py                   Segments, confidence intervals, A/B planning
-│   ├── report.py                     Dashboard chart generator
-│   └── pipeline.py                   Runnable end-to-end pipeline
-├── sql/
-│   ├── 01_overview.sql               Conversion KPIs
-│   ├── 02_visitor_segments.sql       Segmentation
-│   ├── 03_monthly.sql                Dimension-table JOIN
-│   ├── 04_traffic_rank.sql           CTE + window RANK
-│   └── 05_product_engagement.sql     Session engagement
-├── powerbi/
-│   ├── measures.dax                  Power BI measures
-│   └── POWER_BI_GUIDE.md            Instructions to build a BI report
-├── tests/test_pipeline.py           Integrity and SQL parity checks
-├── reports/real/                    Actual UCI dashboard & findings
-└── reports/demo/                    SYNTHETIC DEMO — visualization & CSVs
-```
-
-## Analysis approach
-
-**1. Data quality.** Read the original CSV; verify all required columns, missing values, valid purchase flags, and plausible bounce/exit rates. Preserve identical rows: two distinct sessions could share identical features. Add a stable `session_id`.
-
-**2. Metrics.** Sessions = row count; purchases = number of `Revenue=True` rows; conversion rate = purchases / sessions. Aggregate by month, visitor type, traffic type and product-page bucket.
-
-**3. SQL.** Use an embedded SQLite database, group-by aggregation, a month dimension join, a CTE and a `RANK()` window. All SQL result tables are exported to CSV. Queries are in `sql/`.
-
-**4. Statistics.** Compare *New_Visitor* vs *Returning_Visitor* with a chi-square test for association (not an A/B test). Report the difference in conversion **percentage points** and an approximate 95% confidence interval. P-values describe evidence of an association; they do not prove causation.
-
-**5. Future A/B test planning.** Estimate equal-group sample sizes for **hypothetical** 10%, 15% and 20% relative lifts in conversion. Use two-sided α=0.05 and 80% power. Sample size output is named `ab_test_plan_NOT_RESULTS.csv`. No experiment was conducted.
-
-**6. Power BI.** CSV export and DAX measures ready for Power BI Desktop. A `.pbix` is **not** included; rebuild steps live in `powerbi/POWER_BI_GUIDE.md`.
-
-## Real output files
-
-After running `python -m src.pipeline`, `reports/real/` contains the following outputs (this repository includes the real dashboard and a findings summary; other generated artifacts are excluded from Git):
-
-- `dashboard.png` — a four-panel analytics dashboard
-- `FINDINGS.md` — automatically generated analysis summary with honest limitations
-- `sessions_clean.csv` — validated flat table for Power BI and Excel
-- `conversion_analysis.db` — embedded SQLite database
-- `sql_*.csv`, `segment_*.csv` — query/segment reports
-- `observational_test.csv` — statistical check
-- `ab_test_plan_NOT_RESULTS.csv` — A/B planning calculations **only**
-
-## Recommendations / limitations
-
-Use findings to **form hypotheses**, such as prioritizing high-volume low-converting segments, and then validate ideas with genuine randomized experiments. These data **cannot establish whether changing page count, traffic source or visitor type causes purchases**. `PageValues` is potentially outcome-dependent and should not be treated as a causal driver or early-stage predictor without leakage checks. Since months lack years, avoid making multi-year trends or retention claims. Small traffic segments can have unstable rates; rank queries require at least 100 sessions.
-
-## Suggested CV entry (use after you understand & run the project)
-
-**E-commerce Conversion Analytics | Python, SQL, Pandas, Statistics**  
-- Analyzed 12,330 e-commerce sessions with Python, Pandas and SQL, measuring **15.47% session conversion** and customer segment performance.  
-- Created an analytics dashboard and a chi-square statistical comparison; identified a **10.98 percentage-point observational conversion gap** between new and returning visitors.  
-- Planned a future A/B-test sample size; **no randomized experiment was conducted**.
-
-**Attribution:** Sakar, C. & Kastro, Y. (2018). Online Shoppers Purchasing Intention Dataset. UCI Machine Learning Repository. https://doi.org/10.24432/C5F88Q (CC BY 4.0).
+**Next work:** Build and save the Power BI report with Power BI Desktop. See the [Power BI guide](powerbi/POWER_BI_GUIDE.md).

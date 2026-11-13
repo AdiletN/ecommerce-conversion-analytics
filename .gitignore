@@ -1,0 +1,18 @@
+# Local Python files
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Original data can be downloaded by the pipeline
+data/*.csv
+
+# Files created by running the pipeline
+reports/real/*.csv
+reports/real/*.db
+reports/real/RUN_SUMMARY.md
+reports/demo/*.csv
+reports/demo/*.db
+reports/demo/RUN_SUMMARY.md
+
+# Keep the report images in GitHub for review.

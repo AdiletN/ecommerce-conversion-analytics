@@ -1,17 +1,19 @@
-// After importing reports/real/sessions_clean.csv, rename the table Sessions.
-// Revenue is 0/1 purchase flag, NOT a monetary revenue field.
+// Add each measure separately in Power BI Desktop.
+// First, name the imported table: Sessions.
+// The revenue column is 1 for purchase and 0 for no purchase.
 
 Sessions = COUNTROWS(Sessions)
 
-Purchases = SUM(Sessions[revenue])
+Purchase Sessions = SUM(Sessions[revenue])
 
-Conversion Rate = DIVIDE([Purchases], [Sessions], 0)
+Conversion Rate = DIVIDE([Purchase Sessions], [Sessions], 0)
 
-Non-Purchase Sessions = [Sessions] - [Purchases]
+Sessions Without Purchase = [Sessions] - [Purchase Sessions]
 
 Average Product Pages = AVERAGE(Sessions[productrelated])
 
 Average Exit Rate = AVERAGE(Sessions[exitrates])
 
-// Set Conversion Rate and Average Exit Rate formats to Percentage.
-// Sort month by month_order, and product_page_bucket by a numeric sort column.
+// Format Conversion Rate and Average Exit Rate as percentages.
+// For month order: sort Sessions[month] by Sessions[month_order].
+// Do not create a money/revenue measure. This dataset has no prices.
