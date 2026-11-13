@@ -1,4 +1,4 @@
-"""CLI: fetch UCI real data or run a clearly labelled synthetic offline demo."""
+"""Run the full analysis or a fake offline example."""
 from __future__ import annotations
 import argparse
 from pathlib import Path
@@ -13,8 +13,9 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def generate_outputs(s: pd.DataFrame, output: Path, demo: bool = False) -> None:
+    if s.empty:
+        raise ValueError("No sessions to analyze")
     output.mkdir(parents=True, exist_ok=True)
-    # Flat fact table: importable directly into Power BI, Excel or SQLite.
     s.to_csv(output / "sessions_clean.csv", index=False)
     with sqlite3.connect(output / "conversion_analysis.db") as conn:
         s.to_sql("sessions", conn, if_exists="replace", index=False)
@@ -29,42 +30,69 @@ def generate_outputs(s: pd.DataFrame, output: Path, demo: bool = False) -> None:
     for name, tab in segments.items():
         tab.to_csv(output / f"segment_{name}.csv", index=False)
 
-    outcome = visitor_hypothesis(s)
-    pd.DataFrame([outcome]).to_csv(output / "observational_test.csv", index=False)
+    result = visitor_hypothesis(s)
+    pd.DataFrame([result]).to_csv(output / "observational_test.csv", index=False)
     ab_plan(float(s["revenue"].mean())).to_csv(output / "ab_test_plan_NOT_RESULTS.csv", index=False)
     dashboard(s, output / "dashboard.png", demo)
 
-    total, purchases = len(s), int(s["revenue"].sum())
-    vtab = segments["visitor"]
-    vtext = "\n".join(f"- {row.visitortype}: {row.sessions:,} sessions, {row.conversion_rate:.2%} conversion"
-                       for row in vtab.itertuples())
-    label = "SYNTHETIC DEMONSTRATION (NOT REAL UCI RESULTS)" if demo else "REAL UCI SOURCE DATA"
-    sig = "not calculated"
-    if outcome.get("status") == "ok":
-        sig = f"{outcome['chi2_pvalue']:.4g} (chi-square, association only)"
-    report = f"""# Conversion analysis findings\n\n**{label}**\n\n## Scope & definitions\n- Sessions: **{total:,}**\n- Sessions resulting in a purchase: **{purchases:,}**\n- Session conversion: **{purchases / total:.2%}**\n- Metric definition: `purchases / sessions`; `Revenue` is a Boolean purchase flag, not an amount of money.\n\n## Visitors\n{vtext}\n\n## Statistical check\n- Preselected comparison: New vs Returning visitor session conversion.\n- Two-group chi-square test p-value: **{sig}**.\n- Difference (Returning minus New), 95% CI: **[{outcome.get('difference_ci95_low_pp', 'NA')}, {outcome.get('difference_ci95_high_pp', 'NA')}] percentage points**.\n- The comparison is observational, **not** an A/B test. No causal effect can be inferred.\n\n## Recommended business follow-up\n1. Prioritize diagnostic review of high-volume, low-conversion visitor segments.\n2. Examine product page usability and on-site navigation; session engagement may reflect user intent, not cause conversion.\n3. Design a **future randomized A/B test** with conversion rate as the primary KPI.\n4. Check assignment balance, instrumentation, and revenue/guardrail metrics in a real experiment.\n\n## Limitations\n- No prices, amounts, transaction IDs, user IDs or full visit dates. Cannot calculate revenue, AOV, retention, or cohort churn.\n- Month has no explicit year; seasonal/temporal claims require caution.\n- Metrics such as `PageValues` can reflect purchase outcomes and are inappropriate as pre-experiment targeting evidence.\n- No random assignment here. Associations are not causal effects.\n- Rows are not automatically deduplicated because identical features can describe different sessions.\n\n## Files\n- `dashboard.png`: four-panel chart.\n- `sql_*.csv`: SQLite query outputs.\n- `segment_*.csv`: Pandas segment tables.\n- `observational_test.csv`: statistical comparison.\n- `ab_test_plan_NOT_RESULTS.csv`: **sample-size calculations only; no experiment has been run**.\n- `sessions_clean.csv`: cleaned input for Power BI.\n"""
-    (output / "FINDINGS.md").write_text(report, encoding="utf-8")
-    print(f"{label}: {total:,} sessions, {purchases:,} purchases, {purchases / total:.2%} conversion")
-    print(f"Outputs saved to {output}")
+    visitors = "\n".join(
+        f"- {row.visitortype.replace('_', ' ')}: {row.sessions:,} sessions; {row.conversion_rate:.2%} conversion"
+        for row in segments["visitor"].itertuples()
+    )
+    origin = "FAKE TEST DATA (not the UCI dataset)" if demo else "UCI DATASET"
+    pvalue = f"{result['chi2_pvalue']:.3g}" if result.get("status") == "ok" else "not available"
+    interval = (f"[{result['difference_ci95_low_pp']:.2f}, {result['difference_ci95_high_pp']:.2f}] pp"
+                if result.get("status") == "ok" else "not available")
+    summary = f"""# Run summary
+
+**Data source: {origin}**
+
+This file is created by the Python script each time it runs.
+The main business report is saved in `reports/real/FINDINGS.md` and is not changed by the script.
+
+## Main numbers
+
+- Sessions: **{len(s):,}**
+- Sessions with a purchase: **{int(s['revenue'].sum()):,}**
+- Purchase conversion rate: **{s['revenue'].mean():.2%}**
+
+## Visitor groups
+{visitors}
+
+## Statistical check
+
+- Chi-square p-value: **{pvalue}**.
+- 95% confidence interval for (returning minus new) conversion: **{interval}**.
+- This is an observational comparison, not a real A/B test.
+
+## Important limits
+
+- `Revenue` shows a purchase, not the amount of money.
+- The file has no order prices, so we cannot calculate sales or profit.
+- The file has months but no years, so we cannot study long-term trends.
+- These results do not prove cause and effect.
+"""
+    # Keep hand-written business findings safe from future pipeline runs.
+    (output / "RUN_SUMMARY.md").write_text(summary, encoding="utf-8")
+    print(f"{origin}: {len(s):,} sessions, {int(s['revenue'].sum()):,} purchase sessions, {s['revenue'].mean():.2%} conversion")
+    print(f"Files saved in {output}")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Reproducible e-commerce conversion analysis")
-    parser.add_argument("--demo", action="store_true", help="Generate synthetic data for offline demonstration")
-    parser.add_argument("--input", type=Path, help="Path to an existing UCI CSV")
+    parser = argparse.ArgumentParser(description="E-commerce session analysis")
+    parser.add_argument("--demo", action="store_true", help="Run with fake data for testing")
+    parser.add_argument("--input", type=Path, help="Local path to UCI CSV data")
     args = parser.parse_args()
     if args.demo and args.input:
         parser.error("Choose either --demo or --input, not both")
     if args.demo:
-        df = prepare_sessions(synthetic_sessions())
-        generate_outputs(df, ROOT / "reports" / "demo", demo=True)
+        generate_outputs(prepare_sessions(synthetic_sessions()), ROOT / "reports" / "demo", demo=True)
         return
-    file = args.input if args.input else ROOT / "data" / "online_shoppers_intention.csv"
-    if not file.exists():
-        print("Downloading real UCI dataset (internet connection required)...")
-        download_data(file)
-    df = load_sessions(file)
-    generate_outputs(df, ROOT / "reports" / "real")
+    path = args.input if args.input else ROOT / "data" / "online_shoppers_intention.csv"
+    if not path.exists():
+        print("Trying to download UCI data...")
+        download_data(path)
+    generate_outputs(load_sessions(path), ROOT / "reports" / "real")
 
 
 if __name__ == "__main__":

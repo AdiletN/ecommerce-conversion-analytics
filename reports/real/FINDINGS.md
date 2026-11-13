@@ -1,78 +1,96 @@
-# Conversion Analysis Findings
+# Business Findings: E-commerce Conversion
 
-**Source:** Real UCI Online Shoppers Purchasing Intention Dataset (12,330 session-level observations).
+**Data:** UCI Online Shoppers Purchasing Intention Dataset, 12,330 sessions.
 
-## Scope and Definitions
+## 1. Business question
 
-- **Sessions:** 12,330
-- **Purchase sessions:** 1,908
-- **Sessions without a purchase:** 10,422
-- **Session conversion rate:** 15.47% (`purchase_sessions / sessions`)
-- **Average product-related pages viewed:** 31.7 per session (as shown on dashboard).
-- The source column `Revenue` is a **Boolean purchase indicator**, **not a monetary amount**.
+An online store wants more people to finish a purchase. I studied session data to find groups with different conversion rates and suggest what the store should check next.
 
-## Key Findings
+A **conversion** means that a session ended in a purchase. We do not have order prices or total sales.
 
-### 1. New vs returning visitors
+## 2. Main numbers
 
-| Visitor type | Sessions | Conversion rate |
-|---|---:|---:|
-| New_Visitor | 1,694 | 24.91% |
-| Returning_Visitor | 10,551 | 13.93% |
+| Metric | Value |
+| --- | ---: |
+| All sessions | 12,330 |
+| Purchase sessions | 1,908 |
+| Sessions without a purchase | 10,422 |
+| Purchase conversion rate | 15.47% |
+
+Conversion rate = purchase sessions / all sessions × 100.
+
+## 3. What I found
+
+### Finding A: New and returning visitors are different
+
+| Visitor group | Sessions | Conversion |
+| --- | ---: | ---: |
+| New visitors | 1,694 | 24.91% |
+| Returning visitors | 10,551 | 13.93% |
 | Other | 85 | 18.82% |
 
-- New visitor sessions have a **10.98 percentage-point higher** conversion rate than returning visitor sessions (24.91% vs 13.93%).
-- Returning visitor sessions account for **85.6%** of all sessions; this high-volume segment is worth investigating.
-- The differences are descriptive associations, not proof that visitor status causes purchasing behavior.
+New visitors had a **10.98 percentage-point higher** conversion rate. Returning visitors made up about **85.6%** of all sessions.
 
-### 2. Product-page engagement
+**Why it matters:** The returning group is large. A small improvement here could matter, but the dataset cannot tell us what would cause that improvement.
 
-- Sessions with **30+ product pages viewed** convert at approximately **23%**.
-- Sessions with **1–4 pages viewed** convert at approximately **4%**.
-- This is an association between engagement and purchase behavior, not evidence that increasing pages viewed will improve conversion. Very small groups, including sessions with zero product pages, require caution.
+**What to check:** Compare traffic sources within each visitor group. The new SQL query `sql/06_visitor_traffic.sql` helps with this first step. Next, ask for data about product search, carts, and checkout steps.
 
-### 3. Traffic sources
+### Finding B: More product pages are linked with more purchases
 
-- **Traffic Type 2** shows about **21.6%** conversion, with the largest traffic volume among the six sources shown.
-- **Traffic Type 3** shows about **8.8%** conversion among the sources displayed.
-- Traffic types are numeric codes; the dataset does not identify their marketing channels. Analyze traffic quality and composition before interpreting the differences.
+- Sessions with **30 or more** product pages: about **23%** conversion.
+- Sessions with **1–4** product pages: about **4%** conversion.
 
-### 4. Monthly conversion
+**Why it matters:** People who look at more products may be more interested in buying. It does not mean that making people open more pages will increase sales.
 
-- November has approximately **25%** conversion among the listed months.
-- Month does not specify the year, so these are *within-dataset monthly differences*, **not** a year-over-year trend or evidence of sustained seasonal growth.
+**What to check:** Product search, filters, and navigation. Look at users' needs before choosing a change.
 
-## Statistical Check: New vs Returning
+### Finding C: Traffic groups have different results
 
-- Preselected comparison: purchase conversion in new versus returning visitor sessions.
-- Two-sided chi-square test of independence: **p = 3.873e-31**.
-- Conversion rate difference (**returning minus new**): approximately **-10.98 percentage points**.
-- Approximate 95% CI for that difference: **[-13.142, -8.816] percentage points**.
-- **Interpretation:** There is strong evidence of an association between visitor type and conversion in the observed sessions. The test is **not an A/B test** and **does not demonstrate causation**.
+- Traffic Type 2: about **21.6%** conversion.
+- Traffic Type 3: about **8.8%** conversion.
 
-## Business Recommendations
+**Why it matters:** Some traffic groups may bring more interested visitors. The dataset gives traffic type numbers, not the names of marketing channels.
 
-1. Investigate the **high-volume, lower-conversion returning-visitor segment**. Check traffic mix, site experience, checkout flow, and returning-visitor intent.
-2. Study product-page discovery and navigation. Avoid assuming that increasing page counts will cause more purchases.
-3. Compare major traffic types with appropriate sample-size checks and better channel attribution, if available.
-4. Specify a single hypothesis and run a **future randomized A/B experiment**; track conversion as the primary metric and operational guardrails as secondary metrics.
+**What to check:** Find out what each traffic type means before making marketing changes. Compare sample sizes. Small groups can give unreliable rates.
 
-## Limitations
+### Finding D: Month differences need care
 
-- No prices, transaction amounts, full dates, customer IDs or transaction IDs: **revenue, profit, AOV, LTV, retention and churn cannot be computed**.
-- Observations are at the **session** level, not unique-user level; repeat visitors may create multiple sessions, which limits independence assumptions.
-- Month labels have no years; do not infer long-term monthly growth or year-over-year trends.
-- `PageValues` may reflect purchase outcomes and requires special care if used for prediction or targeting (data leakage risk).
-- Small categories can have unstable conversion rates.
-- These are **observational comparisons**, not experimental estimates of treatment effects.
+November had about **25%** conversion in the saved analysis. But the data gives month names without years. We cannot call this annual growth or a long-term trend.
 
-## Output Files
+## 4. Statistics
 
-- `dashboard.png` — charts from the real-data run supplied by the project user.
-- `sql_*.csv` — SQLite query outputs (generated by `python -m src.pipeline`).
-- `segment_*.csv` — Pandas segment tables (generated by the pipeline).
-- `observational_test.csv` — chi-square association and confidence interval.
-- `ab_test_plan_NOT_RESULTS.csv` — *future A/B-test sample-size planning only*.
-- `sessions_clean.csv` — cleaned sessions suitable for Power BI import.
+I used a **chi-square test** to compare new and returning visitor sessions.
 
-**Dataset attribution:** Sakar, C. & Kastro, Y. (2018), *Online Shoppers Purchasing Intention Dataset*, UCI Machine Learning Repository, DOI: 10.24432/C5F88Q.
+- **p-value:** 3.87 × 10⁻³¹.
+- **Conversion gap:** 10.98 percentage points (new minus returning).
+- **Approximate 95% confidence interval** for returning minus new: **[-13.14, -8.82] percentage points**.
+
+The p-value is much smaller than 0.05. This supports a link between visitor type and conversion in this data. It **does not** explain the reason. No users were randomly assigned to groups, so this was **not an A/B test**.
+
+## 5. What the business can do next
+
+| Step | Action | What to measure |
+| --- | --- | --- |
+| 1 | Check which traffic types returning visitors use | Sessions, conversion by visitor and traffic type |
+| 2 | Get more data about search, cart, and checkout steps | Drop-off at each shopping step |
+| 3 | Choose one simple change based on the new data | One main goal: purchase conversion |
+| 4 | Test the change with randomly assigned users | Conversion for test group vs control group |
+
+**Example hypothesis (not a proven result):** Better product search could help returning visitors find products faster. A future A/B test could check this.
+
+I prepared code to estimate the sample size of a future A/B test. The project did **not** run an actual experiment.
+
+## 6. Limits
+
+- `Revenue` is a yes/no purchase flag, not money. I cannot find profit or order value.
+- There are no full dates or order IDs. I cannot calculate customer retention or repeat-purchase value.
+- Months do not include years.
+- Visitor type, page views, and traffic may be linked with purchases, but a link is not proof of cause.
+- Some traffic groups are small. They need more data for a stable comparison.
+- Checkout events are not in this dataset. I cannot say that checkout problems caused the visitor gap.
+
+## 7. Data source
+
+Sakar, C. & Kastro, Y. (2018). [Online Shoppers Purchasing Intention Dataset](https://archive.ics.uci.edu/dataset/468/online+shoppers+purchasing+intention+dataset), UCI Machine Learning Repository. [DOI 10.24432/C5F88Q](https://doi.org/10.24432/C5F88Q). CC BY 4.0.
+
+*This is my analysis of a public education dataset, not a report from a real company.*
